@@ -1,21 +1,53 @@
 "use client";
 
-export default function Header() {
-  return (
-<header className="relative z-10 w-full h-[200px] bg-black text-white px-20 flex flex-col justify-center">
-  <div className="flex items-center text-sm">
-    {/* 로고 */}
-    <div className="text-xl font-semibold whitespace-nowrap mr-36">오늘의 니체</div>
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
-    {/* 네비게이션: 왼쪽에서 살짝 떨어뜨리기 */}
-    <nav className="flex gap-8 ml-36">
-      <a href="#" className="hover:underline">홈</a>
-      <a href="#" className="hover:underline">게시판</a>
-      <a href="#" className="hover:underline">로그인</a>
-      <a href="#" className="hover:underline">회원가입</a>
-    </nav>
-  </div>
-</header>
+export default function Header() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [userName, setUserName] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== "undefined"){
+            const token = localStorage.getItem("jwtToken");
+            const name = localStorage.getItem("userName");
+            setIsLoggedIn(!!token);
+            if (name == null){
+                setUserName("undefined");
+            }
+            if (name) setUserName(name);
+        }
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem("jwtToken");
+        localStorage.removeItem("userName");
+        window.location.href = "/";
+    }
+  return (
+    <header className="relative z-10 w-full h-[200px] bg-black text-white px-20 flex flex-col justify-center">
+    <div className="flex items-center text-sm">
+        {/* 로고 */}
+        <div className="text-xl font-semibold whitespace-nowrap mr-36">오늘의 니체</div>
+
+        {/* 네비게이션 */}
+        <nav className="flex gap-8 ml-36">
+        <Link href="/" className="hover:underline">홈</Link>
+        <Link href="/board" className="hover:underline">게시판</Link>
+        {isLoggedIn ? (
+            <>
+                <span className="text-grey-300 hover:underline">{userName}님</span>
+                <button onClick={handleLogout} className="hover:underline">로그아웃</button>
+            </>
+            ) : (
+            <>
+                <Link href="/login" className="hover:underline">로그인</Link>
+                <Link href="#" className="hover:underline">회원가입</Link>
+            </>
+        )}
+        </nav>
+    </div>
+    </header>
 
   );
 }
