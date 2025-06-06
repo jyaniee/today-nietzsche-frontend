@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Noto_Sans_KR } from "next/font/google";
+
+const notoSansKr = Noto_Sans_KR({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "700"], // 필요한 굵기 (100 thin, 300 light, 400 regular, 500 medium, 700 bold)
+  display: "swap",
+  variable: "--font-noto-sans-kr",      // 커스텀 CSS 변수 등록
+})
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +32,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      <body 
+      className={`${notoSansKr.className} font-sans antialiased`}
       >
         {children}
       </body>
