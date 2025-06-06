@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import HeaderLogo from "./HeaderLogo";
 
 export default function Header() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -28,7 +29,7 @@ export default function Header() {
     <header className="relative z-10 w-full h-[200px] bg-black text-white px-20 flex flex-col justify-center">
     <div className="flex items-center text-sm">
         {/* 로고 */}
-        <div className="text-xl font-semibold whitespace-nowrap mr-36">오늘의 니체</div>
+        <HeaderLogo />
 
         {/* 네비게이션 */}
         <nav className="flex gap-8 ml-36">
@@ -36,7 +37,7 @@ export default function Header() {
         <Link href="/board" className="hover:underline">게시판</Link>
         {isLoggedIn ? (
             <>
-                <span className="text-grey-300 hover:underline">{userName}님</span>
+                <span className="text-grey-300 hover:underline">환영합니다. <span className="font-bold">{userName}</span> 님</span>
                 <button onClick={handleLogout} className="hover:underline">로그아웃</button>
             </>
             ) : (
