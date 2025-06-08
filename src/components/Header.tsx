@@ -43,7 +43,7 @@ export default function Header() {
             ) : (
             <>
                 <Link href="/login" className="hover:underline">로그인</Link>
-                <Link href="#" className="hover:underline">회원가입</Link>
+                <Link href="/signup" className="hover:underline">회원가입</Link>
             </>
         )}
         </nav>

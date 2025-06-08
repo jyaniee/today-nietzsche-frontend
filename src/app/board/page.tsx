@@ -2,8 +2,37 @@
 import Header from "@/components/Header";
 import { mockPosts } from "@/data/mockPosts";
 import PostCard from "@/components/board/PostCard";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 
 export default function BoardPage() {
+    const router = useRouter();
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+      const token = localStorage.getItem("jwtToken");
+      if(!token){
+        router.push("/login");
+        return;
+      }
+       fetch("http://localhost:8080/api/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (res.ok) {
+          setIsAuthorized(true);
+        } else {
+          router.push("/login");
+        }
+      })
+      .catch(() => router.push("/login"));
+  }, []);
+     
+    if(!isAuthorized) return null; // 로딩 중 or 리디렉션 대기
+
   return (
     <>
     <Header/>
