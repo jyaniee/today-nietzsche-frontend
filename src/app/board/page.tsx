@@ -191,7 +191,7 @@ export default function BoardPage() {
                   title={post.title}
                   author={post.authorName}
                   views={post.views}
-                  comments={0} // 댓글 구현 전 임시 0
+                  comments={post.commentCount} // 댓글 구현 전 임시 0
                   likes={post.likes}
                   time={post.time}
                 />

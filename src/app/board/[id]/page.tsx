@@ -1,7 +1,7 @@
 "use client";
 
 import Header from "@/components/Header";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 interface PostDetail {
@@ -16,36 +16,111 @@ interface PostDetail {
   updatedAt: string;
 }
 
+interface Comment {
+  id: number;
+  content: string;
+  authorName: string;
+  createdAt: string;
+}
+
+
+
 export default function PostDetailPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [post, setPost] = useState<PostDetail | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentContent, setCommentContent] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const fetchComments = useCallback(() => {
+    const token = localStorage.getItem("jwtToken");
+    if (!id || !token) return;
+
+    fetch(`http://localhost:8080/api/posts/${id}/comments`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setComments(data));
+  }, [id]);
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-
     if (!token) {
       router.push("/login");
       return;
     }
 
-    fetch(`http://localhost:8080/api/posts/${id}`, {
+    const fetchPostAndComments = async () => {
+      try {
+        const postRes = await fetch(`http://localhost:8080/api/posts/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!postRes.ok) throw new Error("게시글을 불러올 수 없습니다.");
+        const postData = await postRes.json();
+        setPost(postData);
+
+        // 댓글까지 같이 불러오기
+        fetchComments();
+      } catch (e) {
+        router.push("/board");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) fetchPostAndComments();
+  }, [id, router, fetchComments]);
+
+  const handleCommentSubmit = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) return;
+    if (!commentContent.trim()) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    const res = await fetch(`http://localhost:8080/api/posts/${id}/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content: commentContent }),
+    });
+
+    if (res.ok) {
+      setCommentContent("");
+      fetchComments();
+    } else {
+      alert("댓글 작성에 실패했습니다.");
+    }
+  };
+
+  const handleCommentDelete = async (commentId: number) => {
+  const token = localStorage.getItem("jwtToken");
+  if (!token) return;
+
+  const confirmDelete = window.confirm("댓글을 삭제하시겠습니까?");
+  if (!confirmDelete) return;
+
+  const res = await fetch(`http://localhost:8080/api/posts/comments/${commentId}`, {
+      method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("게시글을 불러올 수 없습니다.");
-        }
-        return res.json();
-      })
-      .then((data) => setPost(data))
-      .catch(() => router.push("/board"))
-      .finally(() => setLoading(false));
-  }, [id, router]);
+  });
+
+  if (res.ok) {
+      fetchComments(); // 삭제 후 목록 갱신
+    } else {
+      alert("댓글 삭제에 실패했습니다.");
+    }
+  };
 
   if (loading) return <div className="text-center mt-10 text-gray-500">불러오는 중...</div>;
   if (!post) return null;
@@ -82,6 +157,55 @@ export default function PostDetailPage() {
           <div className="whitespace-pre-line text-lg leading-relaxed">
           {post.content}
           </div>
+          
+          {/* 댓글 작성 + 목록 */}
+          <section className="mt-10">
+            <h2 className="text-xl font-semibold mb-4">💬 댓글</h2>
+
+            {/* 댓글 작성 폼 */}
+            <div className="mb-6">
+              <textarea
+                className="w-full border border-gray-300 px-4 py-2 rounded resize-none"
+                rows={3}
+                placeholder="댓글을 입력하세요"
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  className="bg-black text-white px-4 py-1 rounded hover:bg-gray-800"
+                  onClick={handleCommentSubmit}
+                >
+                  등록
+                </button>
+              </div>
+            </div>
+
+            {/* 댓글 목록 */}
+            <div className="space-y-4">
+               {comments.length === 0 ? (
+              <div className="text-gray-500">아직 댓글이 없습니다.</div>
+            ) : (
+              comments.map((c) => (
+                <div key={c.id} className="bg-white p-4 rounded shadow relative">
+                  <div className="text-sm text-gray-600">
+                    <b>{c.authorName}</b> | {new Date(c.createdAt).toLocaleString()}
+                  </div>
+                  <div className="mt-1 text-gray-800 whitespace-pre-line">{c.content}</div>
+
+                  {c.authorName === localStorage.getItem("userName") && (
+                    <button
+                      className="absolute top-2 right-2 text-xs text-red-500 hover:underline"
+                      onClick={() => handleCommentDelete(c.id)}
+                    >
+                      삭제
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+            </div>
+          </section>
 
           {post.authorName === localStorage.getItem("userName") && (
           <div className="flex justify-end gap-4 mt-10">
