@@ -34,6 +34,9 @@ export default function PostDetailPage() {
   const [commentContent, setCommentContent] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false); // 확장 가능성 (예: UI에서 하트 표시 전환 등)
+
   const fetchComments = useCallback(() => {
     const token = localStorage.getItem("jwtToken");
     if (!id || !token) return;
@@ -45,13 +48,13 @@ export default function PostDetailPage() {
     })
       .then((res) => res.json())
       .then((data) => setComments(data));
-  }, [id]);
+    }, [id]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      router.push("/login");
-      return;
+    useEffect(() => {
+      const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        router.push("/login");
+        return;
     }
 
     const fetchPostAndComments = async () => {
@@ -63,6 +66,17 @@ export default function PostDetailPage() {
         if (!postRes.ok) throw new Error("게시글을 불러올 수 없습니다.");
         const postData = await postRes.json();
         setPost(postData);
+
+        // 좋아요 수 불러오기
+        const likeRes = await fetch(`http://localhost:8080/api/posts/${id}/like-count`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (likeRes.ok) {
+          const count = await likeRes.json();
+          setLikeCount(count);
+        }
 
         // 댓글까지 같이 불러오기
         fetchComments();
@@ -122,6 +136,26 @@ export default function PostDetailPage() {
     }
   };
 
+  const handleLike = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) return;
+
+    const res = await fetch(`http://localhost:8080/api/posts/${id}/like`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      const data = await res.json(); // { likeCount: number }
+      setLikeCount(data.likeCount);
+      setLiked(true); // 추후에 좋아요 상태 구분하려면 필요
+    } else {
+      alert("좋아요 처리 실패");
+    }
+  };
+
   if (loading) return <div className="text-center mt-10 text-gray-500">불러오는 중...</div>;
   if (!post) return null;
 
@@ -143,7 +177,7 @@ export default function PostDetailPage() {
             <span className="text-sm text-gray-500">{post.category}</span>
             <h1 className="text-3xl font-bold mt-2">{post.title}</h1>
             <div className="text-sm text-gray-600 mt-1">
-              작성자: <b>{post.authorName}</b> | {new Date(post.createdAt).toLocaleString()} | 조회수 {post.views} | 좋아요 {post.likes}
+              작성자: <b>{post.authorName}</b> | {new Date(post.createdAt).toLocaleString()} | 조회수 {post.views} | 좋아요 {likeCount}
             </div>
             {/* 수정된 경우 updateAt 표시 */}
             {post.updatedAt && post.updatedAt !== post.createdAt && (
@@ -160,8 +194,16 @@ export default function PostDetailPage() {
           
           {/* 댓글 작성 + 목록 */}
           <section className="mt-10">
-            <h2 className="text-xl font-semibold mb-4">💬 댓글</h2>
-
+              {/* 💬 댓글 헤더 + 좋아요 버튼 */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">💬 댓글</h2>
+                <button
+                  onClick={handleLike}
+                  className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 transition"
+                >
+                  ❤️ 좋아요 {likeCount}
+                </button>
+              </div>
             {/* 댓글 작성 폼 */}
             <div className="mb-6">
               <textarea
